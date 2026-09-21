@@ -1,0 +1,48 @@
+组件版本与来源记录
+应用：油管下载器便携版 1.0
+平台：Windows 10 / 11 x64；.NET Framework 4.8 或更高兼容版本
+核对日期：2026-09-21
+
+油管下载器.exe
+  由 portable-src 顶层 C# 源文件本地编译，C# 5 / WinForms / x64。
+  使用 Windows 自带的 Framework64/v4.0.30319/csc.exe，不要求 .NET SDK。
+  本程序未修改随包附带的工具，也没有改变系统 PATH 或安装全局依赖。
+
+tools/yt-dlp.exe
+  版本：2026.08.19
+  大小：17840399 字节
+  SHA-256：66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a
+  发布：https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19
+  下载：https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe
+  对照官方 SHA2-256SUMS 与 GitHub release API digest 一致；未验证 GPG 签名。
+  官方 LICENSE/THIRD_PARTY_LICENSES 对应提交：
+    3a08beaf031ab68f966401ead017ac81fe8486cf
+  原项目 2026.03.17 在真实下载中返回媒体 HTTP 403，故便携包改用该官方版本。
+  官方相关问题：https://github.com/yt-dlp/yt-dlp/issues/17456
+  新版本移除了已失效的默认 android_vr 客户端；原项目 .tools 不受影响。
+
+tools/ffmpeg.exe
+  版本：8.1.1-essentials_build-www.gyan.dev
+  SHA-256：228d7a8556258de907fdb55f36850078ebc7680b84ec30d84ea02e99bec1d1eb
+tools/ffprobe.exe
+  版本：8.1.1-essentials_build-www.gyan.dev
+  SHA-256：0fde260f5abd35c9cafd96f594cc76365a780c1b73a90e35b6a3409ea1db1bf0
+  来源：现有 Gyan 8.1.1 essentials 发行包内的未修改二进制。
+  发布方：https://www.gyan.dev/ffmpeg/builds/
+  对应 FFmpeg 源码：https://github.com/FFmpeg/FFmpeg/commit/239f2c733d
+  许可与构建 README 从现有发行包原样保留。
+  此处哈希用于标识本地交付文件；未重下完整发行压缩包做官方归档哈希比对。
+
+tools/node.exe
+  版本：v24.13.0
+  大小：89953280 字节
+  SHA-256：d14ba95cdce1ef7dc9ad3ac74949ca5db38b27378ee30f30a23cf26f9e875a11
+  下载：https://nodejs.org/dist/v24.13.0/win-x64/node.exe
+  官方校验表：https://nodejs.org/dist/v24.13.0/SHASUMS256.txt
+  已与官方表中 win-x64/node.exe 一行比对一致；未验证发布签名。
+  许可：https://raw.githubusercontent.com/nodejs/node/v24.13.0/LICENSE
+  源码：https://github.com/nodejs/node/tree/v24.13.0
+
+每次构建均生成 CHECKSUMS.sha256，包含应用、工具和许可说明的实际文件哈希。
+打包只复制明确列入清单的程序和说明，Downloads 在压缩包中为空目录。
+本包不包含视频、Cookies、账号信息、浏览器数据、调试日志或开发测试文件。

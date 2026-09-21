@@ -1,0 +1,39 @@
+第三方组件与许可说明
+核对日期：2026-09-21
+
+本程序通过独立子进程调用下列未修改的工具。各工具及其内部依赖的著作权、
+许可和商标仍属于各自权利人。完整条款以 licenses 中保存的上游原文为准。
+
+1. yt-dlp 2026.08.19 (Windows x64 standalone executable)
+   项目源码采用 Unlicense；官方 PyInstaller 独立可执行文件包含受其他许可
+   约束的组件，合并作品依照 GNU GPL version 3 or later 分发。
+   不应将 tools/yt-dlp.exe 整体描述为只有 Unlicense。
+   原始许可：licenses/yt-dlp/LICENSE.txt
+   官方依赖通知与许可证全文：licenses/yt-dlp/THIRD_PARTY_LICENSES.txt
+   版本校验和、具体来源：licenses/yt-dlp/SHA2-256SUMS.txt、SOURCES.txt
+   项目与版本：https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19
+   对应源码：https://github.com/yt-dlp/yt-dlp/tree/3a08beaf031ab68f966401ead017ac81fe8486cf
+
+2. FFmpeg / ffprobe 8.1.1-essentials_build-www.gyan.dev
+   使用 Gyan Doshi 提供的 Windows x64 静态构建。该构建采用 GNU GPL v3，
+   包含 FFmpeg 以及构建配置中启用的第三方库，不是仅 LGPL 的 FFmpeg 构建。
+   原发行包许可：licenses/FFmpeg-8.1.1-GPLv3.txt
+   原发行包 README（含构建配置、库清单和源码位置）：
+     licenses/FFmpeg-8.1.1-README.txt
+   构建发布方：https://www.gyan.dev/ffmpeg/builds/
+   对应 FFmpeg 源码：https://github.com/FFmpeg/FFmpeg/commit/239f2c733d
+   FFmpeg 项目：https://ffmpeg.org/
+
+3. Node.js v24.13.0 (Windows x64)
+   Node.js 主体采用 MIT 许可，同时包含按各自许可证分发的第三方组件。
+   对应版本完整许可及内含组件通知：licenses/Node-v24.13.0-LICENSE.txt
+   官方版本校验表：licenses/Node-v24.13.0-SHASUMS256.txt
+   版本源码：https://github.com/nodejs/node/tree/v24.13.0
+   Windows x64 二进制：https://nodejs.org/dist/v24.13.0/win-x64/node.exe
+
+范围说明
+以上保存了核对到的上游许可文本、依赖通知与来源；包内没有随附各项目的完整
+对应源码及全部依赖的构建源码。尤其 FFmpeg README 中列出的外部库不等于完整
+源码包。若继续向他人分发这些二进制，分发者仍需按相应许可证落实适用的源码
+提供及其他义务；仅有源码网页链接不代表所有再分发义务已经履行。
+本说明不改变各上游许可证，也不表示上游项目对本图形界面的背书。

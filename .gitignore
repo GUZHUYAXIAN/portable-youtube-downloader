@@ -1,0 +1,35 @@
+# This working folder also contains private downloads, evidence and local tools.
+# Track only the explicitly published source/documentation paths below.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/LICENSE
+!/CHANGELOG.md
+!/CONTRIBUTING.md
+!/portable-src/
+
+/portable-src/*
+!/portable-src/*.cs
+!/portable-src/app.manifest
+!/portable-src/build.ps1
+!/portable-src/test.ps1
+!/portable-src/package.ps1
+!/portable-src/dev-environment.ps1
+!/portable-src/start-development.ps1
+!/portable-src/verify-media.ps1
+!/portable-src/verify-extracted.ps1
+!/portable-src/BUILD.md
+!/portable-src/tests/
+!/portable-src/release-assets/
+
+/portable-src/tests/*
+!/portable-src/tests/*.cs
+/portable-src/release-assets/*
+!/portable-src/release-assets/*.txt
+!/portable-src/release-assets/licenses/
+/portable-src/release-assets/licenses/*
+!/portable-src/release-assets/licenses/*.txt
+!/portable-src/release-assets/licenses/yt-dlp/
+/portable-src/release-assets/licenses/yt-dlp/*
+!/portable-src/release-assets/licenses/yt-dlp/*.txt

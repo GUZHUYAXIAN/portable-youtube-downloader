@@ -1,0 +1,39 @@
+yt-dlp 2026.08.19 - license provenance and verification
+
+Official release:
+https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19
+Release source commit (verified from the official tag reference):
+3a08beaf031ab68f966401ead017ac81fe8486cf
+https://api.github.com/repos/yt-dlp/yt-dlp/git/ref/tags/2026.08.19
+
+LICENSE.txt is an unchanged download of the project's Unlicense:
+https://raw.githubusercontent.com/yt-dlp/yt-dlp/3a08beaf031ab68f966401ead017ac81fe8486cf/LICENSE
+SHA256: 7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c
+
+THIRD_PARTY_LICENSES.txt is an unchanged download of the exact notice file linked by the official release:
+https://raw.githubusercontent.com/yt-dlp/yt-dlp/3a08beaf031ab68f966401ead017ac81fe8486cf/THIRD_PARTY_LICENSES.txt
+SHA256: 472aefe951c7db35e1657c1d13fd337140511ed6f2b329205105ad441c5a02b7
+
+SHA2-256SUMS.txt is an unchanged download of the official release's SHA2-256SUMS asset (local filename has a .txt suffix):
+https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/SHA2-256SUMS
+SHA256: a63701f30755cb4d9317950d69703e9d751d490cb1b7059e1bb501a353fe7dcb
+This checksum-file hash also matches the official GitHub release asset digest.
+
+Licensing scope stated by the version-pinned official README:
+https://github.com/yt-dlp/yt-dlp/blob/3a08beaf031ab68f966401ead017ac81fe8486cf/README.md#licensing
+The yt-dlp project source itself is Unlicense. Official PyInstaller-bundled executables include GPLv3+ licensed code; the combined executable is licensed under GPLv3+. Do not label the entire bundled EXE as Unlicense-only.
+The zipimport Unix executable and release tarball contain ISC-licensed Meriyah and MIT-licensed Astring code. The git repository and PyPI source/wheel distributions are described by upstream as containing only Unlicense code.
+The third-party notice file aggregates licenses for the project's PyInstaller executables across platforms. It is not an exact Windows x64 dependency inventory. It includes GPLv3 and other applicable license texts.
+
+Verification of the bundled Windows x64 yt-dlp.exe:
+Input: portable-src/vendor/yt-dlp-2026.08.19/yt-dlp.exe
+Reported version: 2026.08.19
+Size: 17840399 bytes
+SHA256: 66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a
+Independently measured from the local vendor binary and matched against both the official SHA2-256SUMS entry and the GitHub release asset digest.
+GitHub release metadata:
+https://api.github.com/repos/yt-dlp/yt-dlp/releases/tags/2026.08.19
+
+Verification limits:
+The detached GPG signature was not verified.
+Bundled third-party source code and a complete corresponding-source distribution were not collected by this license-notice audit. Preserve the upstream source-availability statement in THIRD_PARTY_LICENSES.txt, which lists maintainers@yt-dlp.org for upstream source requests. This notice collection alone does not establish satisfaction of every redistribution obligation.
