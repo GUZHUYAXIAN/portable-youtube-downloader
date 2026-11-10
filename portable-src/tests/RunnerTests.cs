@@ -29,7 +29,7 @@ class RunnerTests
             using (var runner = new ProcessRunner()) {
                 var lines = new List<string>();
                 int code = runner.Run(Node("console.log('中文输出'); console.error('失败原因'); process.exitCode=7"), s => { lock (lines) lines.Add(s); });
-                if (code != 7 || !lines.Contains("中文输出") || !lines.Contains("失败原因")) throw new Exception("Exit code or Unicode output lost");
+                if (code != 7 || !lines.Contains("中文输出") || !lines.Contains("失败原因")) throw new Exception("Exit code or Unicode output lost; exit=" + code + "; lines=" + string.Join(" | ", lines));
                 Console.WriteLine("PASS Preserve nonzero exit code and both UTF-8 streams");
             }
             using (var runner = new ProcessRunner()) {

@@ -36,6 +36,20 @@ class CoreTests
         catch (ArgumentException e) { Assert(e.Message.Contains(expectedMessage), "Wrong rejection for " + url + ": " + e.Message); return; }
         throw new Exception("Non-video link accepted in single-video mode: " + url);
     }
+    static string[] CommandArgumentsThroughProcess(string nodePath, ProcessStartInfo command)
+    {
+        string script = "process.argv.slice(1).forEach(x=>console.log(Buffer.from(x,'utf8').toString('base64')))";
+        var info = new ProcessStartInfo(nodePath,
+            "-e " + DownloadCommand.Quote(script) + " -- " + command.Arguments) {
+            UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true
+        };
+        using (var process = Process.Start(info)) {
+            string output = process.StandardOutput.ReadToEnd(); string error = process.StandardError.ReadToEnd(); process.WaitForExit();
+            Assert(process.ExitCode == 0, "Argument probe process failed: " + error);
+            return output.Replace("\r", "").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(value => Encoding.UTF8.GetString(Convert.FromBase64String(value))).ToArray();
+        }
+    }
     static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -93,9 +107,9 @@ class CoreTests
                 }
             });
         });
-        Check("Explicit playlist mode allows playlist channel and ordinary HTTP inputs", delegate {
+        Check("Explicit playlist mode allows YouTube playlists and channels", delegate {
             WithTools(delegate(string root) {
-                foreach (string url in new[] { "https://youtube.com/playlist?list=PLexample", "https://youtube.com/@channel", "https://example.com/media" }) {
+                foreach (string url in new[] { "https://youtube.com/playlist?list=PLexample", "https://youtube.com/@channel" }) {
                     var info = DownloadCommand.Build(root, new DownloadOptions { UrlText = url, OutputDirectory = Path.Combine(root, "output"), Playlist = true });
                     Assert(info.Arguments.Contains("--yes-playlist"), "Explicit playlist setting ignored");
                 }
@@ -116,6 +130,63 @@ class CoreTests
                 string ffmpegArgument = "\"--ffmpeg-location\" \"" + Path.Combine(Path.GetTempPath(), "PortableCore %%PATH%% $$USER " + id, "tools") + "\"";
                 Assert(info.Arguments.Contains(ffmpegArgument), "Bundled FFmpeg path variables are not escaped");
             } finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        });
+        Check("HTTP chunk option is opt-in and survives process argument parsing before URL boundary", delegate {
+            WithTools(delegate(string root) {
+                foreach (int bytes in new[] { 0, 1048576, 10485760 }) {
+                    string url = "https://www.youtube.com/watch?v=stage000001";
+                    var options = new DownloadOptions { UrlText = url, OutputDirectory = Path.Combine(root, "output"), HttpChunkSizeBytes = bytes };
+                    string[] actual = CommandArgumentsThroughProcess(nodePath, DownloadCommand.Build(root, options));
+                    int chunk = Array.IndexOf(actual, "--http-chunk-size");
+                    int boundary = Array.IndexOf(actual, "--");
+                    Assert(boundary >= 0 && actual[boundary + 1] == url, "URL boundary changed in actual child argv");
+                    if (bytes == 0) Assert(chunk == -1, "Default GUI options unexpectedly enable HTTP chunks");
+                    else Assert(chunk >= 0 && chunk + 1 < boundary && actual[chunk + 1] == bytes.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        "Explicit byte count changed in child argv or became part of the URL list");
+                }
+            });
+        });
+        Check("Out-of-range HTTP chunk values reject command construction without creating output", delegate {
+            WithTools(delegate(string root) {
+                string output = Path.Combine(root, "not-created");
+                foreach (int bytes in new[] { -1, 10485761, int.MaxValue }) {
+                    bool rejected = false;
+                    try { DownloadCommand.Build(root, new DownloadOptions { UrlText = "https://youtu.be/stage000001", OutputDirectory = output, HttpChunkSizeBytes = bytes }); }
+                    catch (ArgumentException) { rejected = true; }
+                    Assert(rejected && !Directory.Exists(output), "Invalid chunk value accepted or created output: " + bytes);
+                }
+            });
+        });
+        Check("Social post URLs are accepted without enabling account-wide downloads", delegate {
+            WithTools(delegate(string root) {
+                foreach (string url in new[] { "https://x.com/NMIXX_official/status/1234567890", "https://twitter.com/NMIXX_official/status/1234567890/video/1", "https://www.instagram.com/p/ABC_123/", "https://www.instagram.com/reel/ABC-123/" }) {
+                    var info = DownloadCommand.Build(root, new DownloadOptions { UrlText = url, OutputDirectory = Path.Combine(root, "output") });
+                    Assert(info.Arguments.Contains("--no-playlist"), "Social post must stay bounded");
+                }
+            });
+        });
+        Check("Social account pages, forged hosts and URL credentials are rejected in both modes", delegate {
+            WithTools(delegate(string root) {
+                foreach (bool playlist in new[] { false, true }) foreach (string url in new[] {
+                    "https://x.com/NMIXX_official", "https://instagram.com/nmixx_official/", "https://x.com.evil.test/nmixx/status/12",
+                    "https://example.com/media", "https://user:password@youtube.com/watch?v=id", "https://x.com:8443/nmixx/status/12" }) {
+                    bool rejected = false;
+                    try { DownloadCommand.Build(root, new DownloadOptions { UrlText = url, OutputDirectory = Path.Combine(root, "output"), Playlist = playlist }); }
+                    catch (ArgumentException) { rejected = true; }
+                    Assert(rejected, "Unbounded or untrusted URL accepted: " + url);
+                }
+            });
+        });
+        Check("Editing mode selects H264 and AAC without silent incompatible fallback", delegate {
+            WithTools(delegate(string root) {
+                var options = new DownloadOptions { UrlText = "https://youtu.be/id", OutputDirectory = Path.Combine(root, "output"), Height = 1080 };
+                var field = typeof(DownloadOptions).GetField("EditingCompatible");
+                Assert(field != null, "Editing mode is missing"); field.SetValue(options, true);
+                string[] actual = CommandArgumentsThroughProcess(nodePath, DownloadCommand.Build(root, options));
+                string format = actual[Array.IndexOf(actual, "-f") + 1];
+                Assert(format.Contains("vcodec^=avc1") && format.Contains("acodec^=mp4a") && !format.Contains("/best"), "Incompatible codec fallback is allowed");
+                Assert(actual[Array.IndexOf(actual, "-o") + 1].Contains("H264"), "Editing files can collide with old AV1 downloads");
+            });
         });
         Console.WriteLine("Failures: " + failed);
         return failed == 0 ? 0 : 1;

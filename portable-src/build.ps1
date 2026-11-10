@@ -3,7 +3,9 @@ param(
     [string]$YtDlpPath,
     [string]$FFmpegDirectory = '',
     [string]$NodePath,
-    [switch]$CompileOnly
+    [switch]$CompileOnly,
+    [switch]$BridgeOnly,
+    [switch]$DevelopmentOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,6 +27,7 @@ if ([string]::IsNullOrWhiteSpace($FFmpegDirectory)) {
     }
 }
 $releaseDirectory = [IO.Path]::GetFullPath((Join-Path $workspace '油管下载器便携版'))
+if ($DevelopmentOnly) { $releaseDirectory = [IO.Path]::GetFullPath((Join-Path $workspace '.local\social-development')) }
 $buildDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'build-output'))
 $assetDirectory = Join-Path $PSScriptRoot 'release-assets'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
@@ -81,6 +84,31 @@ foreach ($tool in $tools) {
 $requiredSources = @('Core.cs', 'ProcessRunner.cs', 'MainForm.cs', 'Program.cs')
 foreach ($name in $requiredSources) {
     if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot $name) -PathType Leaf)) { throw "源码尚未完成：$name" }
+}
+if ($BridgeOnly) {
+    $bridgeDirectory = Join-Path $workspace '.local\stage-bridge\bin'
+    Ensure-Directory $bridgeDirectory
+    $bridgeTemporaryExe = Join-Path $bridgeDirectory ('stage-' + [Guid]::NewGuid().ToString('N') + '.exe')
+    $bridgeSources = @('Core.cs', 'ProcessRunner.cs', 'DownloadSession.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+    $bridgeSources += @(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'bridge') -File -Filter '*.cs' | Sort-Object Name | ForEach-Object { $_.FullName })
+    try {
+        $bridgeArgs = @('/nologo', '/target:exe', '/platform:x64', '/optimize+', '/langversion:5', '/codepage:65001', '/warn:4', '/reference:System.dll', '/reference:System.Core.dll', '/reference:System.Web.Extensions.dll', ('/out:' + $bridgeTemporaryExe)) + $bridgeSources
+        & $compiler @bridgeArgs
+        if ($LASTEXITCODE -ne 0) { throw "舞台桥接接口编译失败，退出码 $LASTEXITCODE" }
+        if ($CompileOnly) {
+            Write-Output '舞台桥接接口编译验证完成；未更新本地接口或发行目录。'
+        } else {
+            $bridgeExe = Join-Path $bridgeDirectory 'StageBridge.exe'
+            Copy-ManagedFile $bridgeTemporaryExe $bridgeExe
+            Write-Output "舞台桥接接口构建完成：$bridgeExe"
+        }
+    } finally {
+        if (Test-Path -LiteralPath $bridgeTemporaryExe -PathType Leaf) {
+            Assert-NoReparsePoint $bridgeTemporaryExe
+            Remove-Item -LiteralPath $bridgeTemporaryExe -Force
+        }
+    }
+    return
 }
 $documentNames = @('使用说明.txt', 'THIRD-PARTY-NOTICES.txt', 'VERSIONS-AND-SOURCES.txt')
 $assets = @()

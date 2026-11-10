@@ -62,7 +62,8 @@ namespace PortableYouTube
                     var messages = new Queue<string>();
                     var outputGate = new object();
                     try {
-                        var current = new DownloadOptions { UrlText = urls[i], OutputDirectory = output, Proxy = options.Proxy, Height = options.Height, Playlist = options.Playlist };
+                        var current = new DownloadOptions { UrlText = urls[i], OutputDirectory = output, Proxy = options.Proxy, Height = options.Height,
+                            HttpChunkSizeBytes = options.HttpChunkSizeBytes, Playlist = options.Playlist, EditingCompatible = options.EditingCompatible };
                         int exit = RunProcess(DownloadCommand.Build(root, current), delegate(string line) {
                             if (line == null) return;
                             lock (outputGate) {
@@ -88,7 +89,7 @@ namespace PortableYouTube
                         foreach (string candidate in candidates) {
                             ThrowIfCancelled();
                             try {
-                                string file = VerifyFile(candidate, output, update, index, count);
+                                string file = VerifyFile(candidate, output, options.EditingCompatible, update, index, count);
                                 if (!result.Files.Contains(file, StringComparer.OrdinalIgnoreCase)) result.Files.Add(file);
                                 Emit(update, "已验证 MP4 音视频：" + Path.GetFileName(file), null, index, count, file);
                             } catch (OperationCanceledException) { throw; }
@@ -135,7 +136,7 @@ namespace PortableYouTube
             finally { if (created) File.Delete(path); }
         }
 
-        string VerifyFile(string candidate, string output, Action<DownloadUpdate> update, int index, int count)
+        string VerifyFile(string candidate, string output, bool editingCompatible, Action<DownloadUpdate> update, int index, int count)
         {
             ThrowIfCancelled();
             string file = Path.GetFullPath(candidate);
@@ -145,16 +146,18 @@ namespace PortableYouTube
             if (!string.Equals(Path.GetExtension(file), ".mp4", StringComparison.OrdinalIgnoreCase)) throw new IOException("完成文件不是 MP4：" + file);
             if (new FileInfo(file).Length == 0) throw new IOException("完成文件为空：" + file);
             Emit(update, "正在检查视频、音频和时长：" + Path.GetFileName(file), null, index, count, null);
-            bool video = false, audio = false, duration = false, mp4 = false;
+            bool video = false, audio = false, duration = false, mp4 = false, h264 = false, aac = false;
             var probeGate = new object();
             var info = new ProcessStartInfo(Path.Combine(root, "tools", "ffprobe.exe"), string.Join(" ",
-                new[] { "-v", "error", "-show_entries", "stream=codec_type:format=duration,format_name", "-of", "default=noprint_wrappers=1", file }.Select(DownloadCommand.Quote))) {
+                new[] { "-v", "error", "-show_entries", "stream=codec_type,codec_name:format=duration,format_name", "-of", "default=noprint_wrappers=1", file }.Select(DownloadCommand.Quote))) {
                 WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true,
                 RedirectStandardOutput = true, RedirectStandardError = true,
                 StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
             };
             int exit = RunProcess(info, delegate(string line) {
                 lock (probeGate) {
+                    if (line == "codec_name=h264") h264 = true;
+                    if (line == "codec_name=aac") aac = true;
                     if (line == "codec_type=video") video = true;
                     if (line == "codec_type=audio") audio = true;
                     if (line.StartsWith("format_name=", StringComparison.Ordinal)) mp4 = line.Substring(12).Split(',').Contains("mp4");
@@ -166,6 +169,7 @@ namespace PortableYouTube
             });
             ThrowIfCancelled();
             lock (probeGate) {
+                if (editingCompatible && (!h264 || !aac)) throw new IOException("剪辑兼容检查失败：需要 H.264 视频与 AAC 音频，已有文件保留。请更换保存目录或关闭剪辑兼容模式。");
                 if (exit != 0 || !video || !audio || !duration || !mp4)
                     throw new IOException("MP4 检查失败（必须同时包含视频、音频和有效时长）：" + Path.GetFileName(file) + "。已有文件不会被覆盖。请检查后移走该文件或选择其他保存目录重试。");
             }

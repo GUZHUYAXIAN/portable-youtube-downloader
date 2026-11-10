@@ -20,11 +20,18 @@
 !/portable-src/verify-media.ps1
 !/portable-src/verify-extracted.ps1
 !/portable-src/BUILD.md
+!/portable-src/invoke-stage-bridge.ps1
+!/portable-src/stage-report.ps1
+!/portable-src/bridge/
 !/portable-src/tests/
 !/portable-src/release-assets/
 
 /portable-src/tests/*
 !/portable-src/tests/*.cs
+/portable-src/bridge/*
+!/portable-src/bridge/*.cs
+!/portable-src/bridge/INTERFACE.txt
+!/portable-src/bridge/example-manifest.json
 /portable-src/release-assets/*
 !/portable-src/release-assets/*.txt
 !/portable-src/release-assets/licenses/
@@ -33,3 +40,5 @@
 !/portable-src/release-assets/licenses/yt-dlp/
 /portable-src/release-assets/licenses/yt-dlp/*
 !/portable-src/release-assets/licenses/yt-dlp/*.txt
+
+!/portable-src/tests/StageWrapperTests.ps1

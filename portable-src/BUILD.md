@@ -95,6 +95,12 @@
 Windows、.NET、安全软件及 Codex 等宿主程序可能自行产生系统日志、缓存或其他记录，
 上述设置不表示系统盘完全没有操作系统写入，也不会清理其他软件的数据。
 
+## 独立开发版（不覆盖冻结发行目录）
+
+添加 `-DevelopmentOnly` 会把 GUI、工具和许可复制到项目 `.local\social-development`。用 `start-development.ps1 -ExePath '.\.local\social-development\油管下载器.exe'` 启动。原发行目录和 ZIP 均不变。`-CompileOnly` 仍只做编译验证。
+
+`test.ps1` 现在还运行舞台桥接和 PowerShell 包装器回归，包括路径边界、保留机器可读 JSON 和区分批次报告文件名。
+
 ## 打包
 
 完成真实下载及 GUI 验证、关闭程序后运行：

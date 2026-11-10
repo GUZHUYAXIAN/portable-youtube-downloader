@@ -22,6 +22,7 @@ namespace PortableYouTube
                 if (url.Any(char.IsWhiteSpace) || !Uri.TryCreate(url, UriKind.Absolute, out parsed) ||
                     (parsed.Scheme != "https" && parsed.Scheme != "http") || string.IsNullOrEmpty(parsed.Host))
                     throw new ArgumentException("请输入完整的 http 或 https 视频链接，每行一条。\n无效内容：" + url);
+                if (!string.IsNullOrEmpty(parsed.UserInfo) || !parsed.IsDefaultPort) throw new ArgumentException("链接不能包含账号密码或自定义端口。");
                 if (!result.Contains(url)) result.Add(url);
             }
             if (result.Count == 0) throw new ArgumentException("请先粘贴视频链接，每行一条。");
@@ -52,18 +53,24 @@ namespace PortableYouTube
             return Math.Max(0, Math.Min(100, (int)value));
         }
 
-        static void RequireSingleYouTubeVideo(string url)
+        static void RequireSupportedVideo(string url, bool playlist)
         {
             var uri = new Uri(url);
             string host = uri.Host.ToLowerInvariant();
-            bool shortHost = host == "youtu.be";
-            if (!shortHost && host != "youtube.com" && host != "www.youtube.com" && host != "m.youtube.com" && host != "music.youtube.com")
-                throw new ArgumentException("请输入YouTube视频链接。\n无效内容：" + url);
             string path = Uri.UnescapeDataString(uri.AbsolutePath);
+            bool youtube = host == "youtu.be" || host == "youtube.com" || host == "www.youtube.com" || host == "m.youtube.com" || host == "music.youtube.com";
+            if (!youtube) {
+                bool social = ((host == "x.com" || host == "www.x.com" || host == "twitter.com" || host == "www.twitter.com" || host == "mobile.twitter.com") &&
+                    Regex.IsMatch(path, @"^/[A-Za-z0-9_]+/status/[0-9]+(?:/video/[0-9]+)?/?$")) ||
+                    ((host == "instagram.com" || host == "www.instagram.com") && Regex.IsMatch(path, @"^/(p|reel|tv)/[A-Za-z0-9_-]+/?$"));
+                if (!social) throw new ArgumentException("请输入YouTube视频链接，或 X / Instagram 的具体视频帖子链接。账号主页请使用增量跟踪脚本。\n无效内容：" + url);
+                return;
+            }
+            if (playlist) return;
+            bool shortHost = host == "youtu.be";
             bool single = shortHost && Regex.IsMatch(path, @"^/[^/\s]+/?$");
             if (!shortHost) {
                 if (path.TrimEnd('/') == "/watch") {
-                    // --no-playlist protects watch?v=...&list=... only when a video is present.
                     string video = uri.Query.TrimStart('?').Split('&').FirstOrDefault(x => x.StartsWith("v=", StringComparison.Ordinal));
                     single = video != null && !string.IsNullOrWhiteSpace(Uri.UnescapeDataString(video.Substring(2).Replace("+", " ")));
                 } else {
@@ -72,13 +79,12 @@ namespace PortableYouTube
             }
             if (!single) throw new ArgumentException("链接指向播放列表或频道，请勾选下载整个播放列表或改用具体视频链接。\n无效内容：" + url);
         }
-
         public static ProcessStartInfo Build(string root, DownloadOptions options)
         {
             if (options == null) throw new ArgumentException("下载选项不能为空。");
             root = Path.GetFullPath(root);
             string[] urls = ParseUrls(options.UrlText);
-            if (!options.Playlist) foreach (string url in urls) RequireSingleYouTubeVideo(url);
+            foreach (string url in urls) RequireSupportedVideo(url, options.Playlist);
             string tools = Path.Combine(root, "tools");
             foreach (string file in new[] { "yt-dlp.exe", "ffmpeg.exe", "ffprobe.exe", "node.exe" })
                 if (!File.Exists(Path.Combine(tools, file)))
@@ -87,8 +93,12 @@ namespace PortableYouTube
             string output = Path.GetFullPath(options.OutputDirectory);
             if (options.Height != 0 && options.Height != 2160 && options.Height != 1080 && options.Height != 720 && options.Height != 480)
                 throw new ArgumentException("不支持的清晰度。");
+            if (options.HttpChunkSizeBytes < 0 || options.HttpChunkSizeBytes > 10 * 1024 * 1024)
+                throw new ArgumentException("HTTP 分块大小必须在 0 到 10485760 字节之间；0 使用下载工具默认值。");
             string limit = options.Height == 0 ? "" : "[height<=" + options.Height + "]";
             string format = "bv*[ext=mp4]" + limit + "+ba[ext=m4a]/bv*[ext=mp4]" + limit + "+ba/b[ext=mp4]" + limit + "/best" + limit;
+            if (options.EditingCompatible)
+                format = "bv[ext=mp4][vcodec^=avc1]" + limit + "+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a]" + limit;
             var args = new List<string> {
                 "--ignore-config", "--no-plugin-dirs", "--no-remote-components", "--no-js-runtimes", "--no-cache-dir",
                 "--js-runtimes", "node:" + Path.Combine(tools, "node.exe"),
@@ -99,7 +109,7 @@ namespace PortableYouTube
                 "--windows-filenames", "--no-overwrites", "--continue", "--abort-on-unavailable-fragments", "--socket-timeout", "20", "--retries", "3",
                 "-f", format, "--merge-output-format", "mp4", "--remux-video", "mp4",
                 // yt-dlp expands Windows environment variables even without a shell.
-                "-P", output.Replace("%", "%%").Replace("$", "$$"), "-o", "%(title).150B [%(id)s].%(ext)s"
+                "-P", output.Replace("%", "%%").Replace("$", "$$"), "-o", options.EditingCompatible ? "%(title).140B [%(id)s] [H264].%(ext)s" : "%(title).150B [%(id)s].%(ext)s"
             };
             if (!string.IsNullOrWhiteSpace(options.Proxy))
             {
@@ -109,6 +119,8 @@ namespace PortableYouTube
                     throw new ArgumentException("代理格式示例：http://127.0.0.1:7890；留空使用系统设置。");
                 args.AddRange(new[] { "--proxy", options.Proxy.Trim() });
             }
+            if (options.HttpChunkSizeBytes > 0)
+                args.AddRange(new[] { "--http-chunk-size", options.HttpChunkSizeBytes.ToString(CultureInfo.InvariantCulture) });
             args.Add("--"); args.AddRange(urls);
             return new ProcessStartInfo(Path.Combine(tools, "yt-dlp.exe"), string.Join(" ", args.Select(Quote))) {
                 WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true,
@@ -122,6 +134,8 @@ namespace PortableYouTube
     {
         public string UrlText, OutputDirectory, Proxy;
         public int Height;
+        public int HttpChunkSizeBytes;
         public bool Playlist;
+        public bool EditingCompatible;
     }
 }

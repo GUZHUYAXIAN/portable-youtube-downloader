@@ -14,7 +14,8 @@ namespace PortableYouTube
         readonly TextBox output = new TextBox { Name = "Output", AccessibleName = "保存位置" };
         readonly TextBox proxy = new TextBox { Name = "Proxy", AccessibleName = "可选代理" };
         readonly ComboBox quality = new ComboBox { Name = "Quality", AccessibleName = "最高清晰度", DropDownStyle = ComboBoxStyle.DropDownList };
-        readonly CheckBox playlist = new CheckBox { Name = "Playlist", Text = "下载整个播放列表", AutoSize = true };
+        readonly CheckBox playlist = new CheckBox { Name = "Playlist", Text = "允许 YouTube 播放列表 / 频道", AutoSize = true };
+        readonly CheckBox editing = new CheckBox { Name = "Editing", Text = "剪辑兼容 · H.264 / AAC（可能降低到可用画质）", AutoSize = true, Checked = true };
         readonly Button start = new Button { Name = "Start", Text = "开始下载", AccessibleName = "开始下载" };
         readonly Button cancel = new Button { Name = "Cancel", Text = "取消下载", AccessibleName = "取消下载", Enabled = false };
         readonly Button browse = new Button { Text = "选择文件夹…", AccessibleName = "选择文件夹" };
@@ -31,25 +32,25 @@ namespace PortableYouTube
         public MainForm()
         {
             SuspendLayout();
-            Text = "油管下载器 · 便携版";
+            Text = "NMIXX 素材下载器 · Windows 开发版";
             Font = new Font("Microsoft YaHei UI", 10F);
             AutoScaleMode = AutoScaleMode.Dpi;
             AutoScaleDimensions = new SizeF(96F, 96F);
-            ClientSize = new Size(830, 750);
-            MinimumSize = new Size(750, 730);
+            ClientSize = new Size(860, 830);
+            MinimumSize = new Size(820, 800);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Color.FromArgb(245, 247, 251);
             Icon = SystemIcons.Application;
             Padding = new Padding(24, 18, 24, 18);
 
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 12 };
-            int[] heights = { 43, 27, 118, 27, 40, 42, 44, 48, 34, 26, 24 };
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 14 };
+            int[] heights = { 43, 27, 108, 27, 40, 42, 30, 30, 44, 48, 34, 26, 24 };
             foreach (int h in heights) layout.RowStyles.Add(new RowStyle(SizeType.Absolute, h));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             Controls.Add(layout);
-            var title = new Label { Text = "把喜欢的视频，保存下来。", Font = new Font(Font.FontFamily, 20F, FontStyle.Bold), ForeColor = Color.FromArgb(26, 41, 65), Dock = DockStyle.Fill };
+            var title = new Label { Text = "把喜欢的舞台，留给下一次剪辑。", Font = new Font(Font.FontFamily, 20F, FontStyle.Bold), ForeColor = Color.FromArgb(26, 41, 65), Dock = DockStyle.Fill };
             layout.Controls.Add(title, 0, 0);
-            layout.Controls.Add(MakeLabel("视频链接 · 每行一条，支持多链接"), 0, 1);
+            layout.Controls.Add(MakeLabel("YouTube / X / Instagram 视频帖子 · 每行一条"), 0, 1);
             links.Dock = DockStyle.Fill;
             links.Margin = new Padding(0, 0, 0, 8);
             links.BackColor = Color.White;
@@ -72,13 +73,18 @@ namespace PortableYouTube
             optionsRow.Controls.Add(qualityLabel); optionsRow.Controls.Add(quality); optionsRow.Controls.Add(playlist);
             layout.Controls.Add(optionsRow, 0, 5);
 
+            editing.Margin = new Padding(0, 2, 0, 0);
+            layout.Controls.Add(editing, 0, 6);
+            var limits = MakeLabel("仅下载公开且有权保存的视频；X / INS 登录限制会直接报告，不读取浏览器登录数据。");
+            limits.Font = new Font(Font.FontFamily, 9F);
+            layout.Controls.Add(limits, 0, 7);
             var proxyRow = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Margin = Padding.Empty };
             proxyRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 178));
             proxyRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             var proxyLabel = MakeLabel("代理（可选，留空用系统）"); proxyLabel.Font = new Font(Font.FontFamily, 9F); proxyLabel.Padding = new Padding(0, 7, 0, 0);
             proxy.Dock = DockStyle.Fill; proxy.Margin = new Padding(0, 3, 0, 0);
             proxyRow.Controls.Add(proxyLabel, 0, 0); proxyRow.Controls.Add(proxy, 1, 0);
-            layout.Controls.Add(proxyRow, 0, 6);
+            layout.Controls.Add(proxyRow, 0, 8);
 
             var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, Margin = Padding.Empty, WrapContents = false };
             foreach (var button in new[] { start, cancel, open }) {
@@ -87,13 +93,13 @@ namespace PortableYouTube
                 button.BackColor = Color.White; buttons.Controls.Add(button);
             }
             start.BackColor = accent; start.ForeColor = Color.White; start.FlatAppearance.BorderColor = accent;
-            layout.Controls.Add(buttons, 0, 7);
+            layout.Controls.Add(buttons, 0, 9);
             status.Dock = DockStyle.Fill; status.Font = new Font(Font.FontFamily, 10F, FontStyle.Bold); status.Padding = new Padding(0, 7, 0, 0);
-            layout.Controls.Add(status, 0, 8);
-            progress.Dock = DockStyle.Fill; progress.Margin = new Padding(0, 3, 0, 6); layout.Controls.Add(progress, 0, 9);
+            layout.Controls.Add(status, 0, 10);
+            progress.Dock = DockStyle.Fill; progress.Margin = new Padding(0, 3, 0, 6); layout.Controls.Add(progress, 0, 11);
             detail.Dock = DockStyle.Fill; detail.ForeColor = Color.FromArgb(88, 104, 125); detail.Font = new Font(Font.FontFamily, 9F);
-            layout.Controls.Add(detail, 0, 10);
-            log.Dock = DockStyle.Fill; log.Margin = new Padding(0, 3, 0, 0); log.Font = new Font("Microsoft YaHei UI", 9F); log.BackColor = Color.White; layout.Controls.Add(log, 0, 11);
+            layout.Controls.Add(detail, 0, 12);
+            log.Dock = DockStyle.Fill; log.Margin = new Padding(0, 3, 0, 0); log.Font = new Font("Microsoft YaHei UI", 9F); log.BackColor = Color.White; layout.Controls.Add(log, 0, 13);
 
             start.Click += delegate { StartDownload(); };
             cancel.Click += delegate { CancelDownload(); };
@@ -117,7 +123,7 @@ namespace PortableYouTube
         void SetBusy(bool value)
         {
             busy = value;
-            foreach (Control c in new Control[] { links, output, proxy, quality, playlist, browse, start }) c.Enabled = !value;
+            foreach (Control c in new Control[] { links, output, proxy, quality, playlist, editing, browse, start }) c.Enabled = !value;
             cancel.Enabled = value;
         }
 
@@ -126,7 +132,7 @@ namespace PortableYouTube
             if (busy) return;
             var options = new DownloadOptions {
                 UrlText = links.Text, OutputDirectory = output.Text.Trim(), Proxy = proxy.Text.Trim(),
-                Height = new[] { 0, 2160, 1080, 720, 480 }[quality.SelectedIndex], Playlist = playlist.Checked
+                Height = new[] { 0, 2160, 1080, 720, 480 }[quality.SelectedIndex], Playlist = playlist.Checked, EditingCompatible = editing.Checked
             };
             try { DownloadCommand.Build(root, options); }
             catch (Exception e) { ShowFailure(e.Message); return; }

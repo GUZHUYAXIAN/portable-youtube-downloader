@@ -46,8 +46,8 @@ class SessionTests
             string contents = File.ReadAllText(path);
             if (contents == "probefail") return 4;
             if (contents == "probewait") { Console.WriteLine("probe-ready"); Console.Out.Flush(); Thread.Sleep(20000); }
-            Console.WriteLine("[STREAM]\ncodec_type=video\n[/STREAM]");
-            if (contents != "silent") Console.WriteLine("[STREAM]\ncodec_type=audio\n[/STREAM]");
+            Console.WriteLine("[STREAM]\ncodec_type=video\ncodec_name=" + (contents == "av1" ? "av1" : "h264") + "\n[/STREAM]");
+            if (contents != "silent") Console.WriteLine("[STREAM]\ncodec_type=audio\ncodec_name=aac\n[/STREAM]");
             Console.WriteLine("[FORMAT]\nformat_name=" + (contents == "renamedmkv" ? "matroska,webm" : "mov,mp4,m4a,3gp,3g2,mj2") + "\nduration=" + (contents == "zero" ? "0.000000" : contents == "nan" ? "NaN" : "1.000000") + "\n[/FORMAT]");
             return 0;
         }
@@ -164,6 +164,26 @@ class SessionTests
                 }
             });
         }
+        Check("Editing mode rejects existing incompatible AV1 media and preserves it", delegate {
+            using (var f = new Fixture()) using (var session = new DownloadSession(f.Root)) {
+                var options = f.Options("av1"); options.EditingCompatible = true;
+                var result = session.Run(options, null);
+                Assert(result.Failed == 1 && result.Succeeded == 0 && result.Files.Count == 0, "Editing mode accepted incompatible media");
+                Assert(File.Exists(Path.Combine(f.Output, "av1.mp4")), "Rejected media was deleted");
+            }
+        });
+        Check("Editing mode verifies H264 AAC", delegate {
+            using (var f = new Fixture()) using (var session = new DownloadSession(f.Root)) {
+                var options = f.Options("good"); options.EditingCompatible = true;
+                Assert(session.Run(options, null).Succeeded == 1, "Compatible editing file was rejected");
+
+            }
+        });
+        Check("Original quality mode retains AV1 support", delegate {
+            using (var f = new Fixture()) {
+                var original = f.Run("av1"); Assert(original.Succeeded == 1, string.Join(" | ", original.Errors));
+            }
+        });
         Console.WriteLine("Failures: " + failed); return failed == 0 ? 0 : 1;
     }
 }

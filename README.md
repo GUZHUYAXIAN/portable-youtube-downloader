@@ -38,6 +38,36 @@ A portable YouTube MP4 downloader for Windows, built with C# and WinForms.
 
 开发脚本将可控临时文件放在本项目 `.local`，不会修改全局 TEMP/TMP；系统编译器和 Git 仍从已有安装使用。
 
+## Dots 舞台下载桥接（本地开发功能）
+
+新增的独立命令接口可以接收舞台清单，按艺人、专辑、演出和机位保存视频，并返回 JSON 回执及本地 HTML 记录。按 YouTube 视频 ID 跨批次去重，保留失败原因和中断状态；只有通过原下载器音视频检查的文件才标记完成。
+
+```powershell
+& .\portable-src\build.ps1 -BridgeOnly
+```
+
+此命令仅构建到项目 `.local\stage-bridge\bin`，不更新便携发行目录或冻结 ZIP。配置与用法见 [桥接接口说明](portable-src/bridge/INTERFACE.txt)。个人 Dots 交接指令、清单和验收记录放在 `.local\stage-bridge`，不进入公开文件清单。本功能需要本地配置和联网电脑；云端发现及 Dots 到个人电脑的实际交接须单独验证。
+
+## Windows 多平台开发版
+
+本次开发版保留 v1.0.0 的 EXE、ZIP、标签和 Release，不覆盖冻结版本。新增：
+
+- GUI 接受 YouTube 视频、X/Twitter 状态帖和 Instagram 视频帖子链接；每行一条，失败后继续其他链接。
+- X/Instagram 主页不在 GUI 中整号抓取。只接受可信平台域名，不接受带账号密码或自定义端口的 URL；YouTube 频道/播放列表仍需明确勾选。
+- 默认勾选剪辑兼容模式，选择可用的 H.264 视频与 AAC 音频，合并后再次核验实际编码。不会静默回退到 AV1；没有兼容格式时明确失败，可关闭此选项保留原画质模式。兼容格式可能低于所选最高分辨率。
+- 兼容文件名带 `[H264]`，避免与已有其他编码的 MP4 混淆；原文件不覆盖。
+- 保留现有舞台清单桥接、跨批次视频 ID 去重、失败/中断恢复和本地 HTML 回执；修复清单路径边界和报告文件名碰撞。
+
+构建与启动新开发版：
+
+```powershell
+& .\portable-src\test.ps1
+& .\portable-src\build.ps1 -DevelopmentOnly
+& .\portable-src\start-development.ps1 -ExePath '.\.local\social-development\油管下载器.exe'
+```
+
+站点支持是链接处理能力，不代表所有帖子可下载。X/Instagram 的登录要求、私有/年龄/地区限制会直接报告；不读取浏览器 Cookies、不建立持久登录、不绕过限制。此 GUI 仅下载有声视频，不下载图片或静音视频。账号追更应使用独立增量跟踪入口；GUI 本身不安装后台定时任务。自动模式需联网电脑和已核实的来源，不能称为实时全网收集。
+
 ## 验证
 
 第一版已在 Windows x64 上通过 43 项核心回归测试，并把交付 ZIP 解压到新的中文、空格目录实际操作：

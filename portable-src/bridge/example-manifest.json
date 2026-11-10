@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "batchId": "nmixx-example-mcountdown-20261022",
+  "artist": "NMIXX",
+  "release": "Strange Muse",
+  "items": [
+    {
+      "videoId": "2et9-4peX1M",
+      "url": "https://www.youtube.com/watch?v=2et9-4peX1M",
+      "title": "'최초 공개' NMIXX - 긴 소원 (Birthday Wish) #엠카운트다운 EP.950 | Mnet 261022 방송",
+      "channel": "Mnet K-POP",
+      "eventName": "M COUNTDOWN",
+      "performanceDate": "2026-10-22",
+      "uploadDate": "",
+      "kind": "official-stage",
+      "member": "",
+      "sourceUrl": "https://www.youtube.com/watch?v=2et9-4peX1M"
+    }
+  ]
+}

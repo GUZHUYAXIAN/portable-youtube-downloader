@@ -1,0 +1,53 @@
+﻿K-pop 舞台本地桥接接口 v1
+
+用途
+由 Dots 创建的本地 Work/Codex 任务调用本接口。云端只交付结构化视频清单；本地负责目录、下载、音视频验证和回执。
+此接口没有公网监听端口，不要求新增服务或 API 密钥。Dots 连接电脑及云端→本地任务交接必须在实际账户里单独验证。
+
+构建（保留冻结 v1.0.0 发行目录和 ZIP）
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "<PROJECT>\portable-src\build.ps1" -BridgeOnly
+产物：<PROJECT>\.local\stage-bridge\bin\StageBridge.exe
+仅使用项目现有工具和 .NET Framework 编译器。
+
+配置
+<PROJECT>\.local\stage-bridge\settings.json
+toolsRoot：含 tools 子目录的现有便携包根目录。
+outputRoot：项目内已存在的视频库目录。
+height：0（最佳）、2160、1080、720 或 480。默认验收使用 1080。
+httpChunkSizeBytes：0（沿用工具默认）或不超过 10485760 的正整数。当前舞台验收配置为 1048576；这是针对本机实测大 HTTP 块反复截断所用的 1 MiB 分块，不增加重试次数、不降低画质。普通 GUI 未启用这个参数。
+proxy：本次工具进程使用的代理；留空沿用原下载内核的默认网络行为，不修改系统代理。
+不在聊天里粘贴代理密码或账号数据。
+
+命令
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "<PROJECT>\portable-src\invoke-stage-bridge.ps1" -Action submit -ManifestPath "<PROJECT>\.local\stage-bridge\inbox\batch.json"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "<PROJECT>\portable-src\invoke-stage-bridge.ps1" -Action run -BatchId "my-batch"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "<PROJECT>\portable-src\invoke-stage-bridge.ps1" -Action status -BatchId "my-batch"
+重试失败项：run 命令加 -RetryFailed。不要自动无限重试；保留并解释原始错误。
+省略 status 的 BatchId 可查询全部视频和批次。
+
+自动化也可直接调用 StageBridge.exe --workspace "<PROJECT>" submit <manifest> / run <batchId> [--retry-failed] / status [batchId]。
+EXE 的 stdout 只有一个 JSON 回执，stderr 为执行日志。退出码 0 表示命令完成；run 成功还要求所有任务成功，2 为参数/接口异常，其他非零为失败或取消（以具体回执为准）。
+PowerShell 包装器另保存每次回执到 .local\stage-bridge\receipts，并生成 reports\batch-<batchId 的 UTF-8 SHA256>.html（汇总为 reports\all.html）。报告是快照，重新执行 status 更新它。
+机器可读消费者应读取回执 JSON；不要根据屏幕上一句“完成”推断视频下载成功。
+
+清单
+参见 example-manifest.json。schemaVersion=1，batchId 1-80位ASCII字母/数字/下划线/连字符。
+artist、release 为已核实的艺人/专辑名称，items 为 1-500 项。
+videoId 为 YouTube 11位ID，url 必须指向同一ID。
+kind 仅 official-stage / fullcam / member-fancam / fancam。FaceCam 为 member-fancam，单镜为 fullcam；原始标题保留具体版本。
+performanceDate、uploadDate 为 yyyy-MM-dd 或空字符串。未知演出日期必须留空，不得拿上传日补齐。
+sourceUrl 是支持这条识别结果的公开网页，title/channel 保留真实原标题/频道名。
+不得传入本地路径、命令或任意脚本。保存路径由本地配置和清理后的元数据生成。
+
+语义
+submit 校验整份清单后原子写入 state.json。accepted 是新入库条数，reused 是已有 videoId 条数。
+同批同一视频集合可重复提交；同 batchId 换集合会拒绝。新增视频用新 batchId；先前视频跨批次复用。
+同场演出的不同视频ID全部保留，按活动归组。不同URL表示同一ID时仅一个下载任务。
+run 默认处理 pending/interrupted；failed 须显式 -RetryFailed。电脑离线时没有下载，任务仍保留。
+run 同时只允许一个写入操作；busy 表示未接收新的修改，稍后重交同一清单即可。status 可读取快照。
+下载器经 MP4 容器、视频流、音频流和有效时长检查成功后才标 succeeded。
+status.ok=true 表示查询成功，不代表全部视频成功；判断下载必须看 counts 和每条 status。
+成功文件后来被移动/删除或变空时显示 missing；重试前重新运行并加 -RetryFailed。
+原始标题、来源、状态、错误、尝试次数、UTC时间和文件绝对路径都保存在 state.json 与回执中。
+此版本没有自动定时巡查、后台自启动和云端队列服务；云端发现/持久待交付清单由 Dots 指令负责，实际交接需验收。
+包装器退出时会结束它启动的桥接进程及下载子树；未完成任务会显示 interrupted，下次 run 可恢复。正常关闭界面与后台继续下载不是本接口的默认行为。

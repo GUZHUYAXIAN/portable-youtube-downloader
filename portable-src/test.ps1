@@ -31,4 +31,13 @@ Invoke-ProjectTempEnvironment -ProjectRoot $workspace -Action {
     if ($LASTEXITCODE -ne 0) { throw 'UI messages test compilation failed' }
     & "$buildDir\UiMessagesTests.exe"
     if ($LASTEXITCODE -ne 0) { throw 'UI messages tests failed' }
+    $bridgeSources = @('Core.cs', 'ProcessRunner.cs', 'DownloadSession.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+    $bridgeSources += @(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'bridge') -File -Filter '*.cs' | Sort-Object Name | ForEach-Object { $_.FullName })
+    $bridgeCompilerArgs = @('/nologo', '/target:exe', '/langversion:5', '/codepage:65001', '/main:BridgeTests', '/reference:System.dll', '/reference:System.Core.dll', '/reference:System.Web.Extensions.dll', ('/out:' + (Join-Path $buildDir 'BridgeTests.exe'))) + $bridgeSources + @((Join-Path $PSScriptRoot 'tests\BridgeTests.cs'), $testEnvironment)
+    & $compiler @bridgeCompilerArgs
+    if ($LASTEXITCODE -ne 0) { throw 'Bridge tests compilation failed' }
+    & (Join-Path $buildDir 'BridgeTests.exe')
+    if ($LASTEXITCODE -ne 0) { throw 'Bridge tests failed' }
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'tests\StageWrapperTests.ps1')
+    if ($LASTEXITCODE -ne 0) { throw 'Stage wrapper tests failed' }
 }
